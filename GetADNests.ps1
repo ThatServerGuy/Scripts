@@ -1,8 +1,12 @@
-# Import the Active Directory module
+# Import the necessary modules
 Import-Module ActiveDirectory
+Import-Module ImportExcel
 
 # Get the domain to search from
 $DomainName = (Get-ADDomain).DNSRoot
+
+# Initialize an array to store the results
+$results = @()
 
 # Function to recursively get members of all groups in the domain
 function Get-AllGroupMembers {
@@ -17,7 +21,7 @@ function Get-AllGroupMembers {
     foreach ($member in $groupMembers) {
         if ($member.objectClass -eq 'user') {
             # Output user details
-            [PSCustomObject]@{
+            $results += [PSCustomObject]@{
                 Group         = $GroupName
                 ParentGroup   = $ParentGroup
                 MemberName    = $member.SamAccountName
@@ -25,7 +29,7 @@ function Get-AllGroupMembers {
             }
         } elseif ($member.objectClass -eq 'group') {
             # Output group details
-            [PSCustomObject]@{
+            $results += [PSCustomObject]@{
                 Group         = $GroupName
                 ParentGroup   = $ParentGroup
                 MemberName    = $member.SamAccountName
@@ -45,3 +49,6 @@ $allGroups = Get-ADGroup -Filter * -Server $DomainName
 foreach ($group in $allGroups) {
     Get-AllGroupMembers -GroupName $group.SamAccountName
 }
+
+# Export the results to an Excel file
+$results | Export-Excel -Path "ADGroupMembers.xlsx" -AutoSize
